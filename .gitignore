@@ -1,0 +1,18 @@
+# Composer vendor directory
+vendor/
+web/core
+web/modules/contrib
+web/themes/contrib
+web/profiles/contrib
+
+# Ignore Drupal's file directory
+web/sites/*/files/*
+
+# Ignore composer.lock since this repo is an example.
+composer.lock
+
+# Files created by IntelliJ
+*.iml
+.idea/
+
+.DS_Store

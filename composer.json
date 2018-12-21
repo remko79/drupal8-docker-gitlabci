@@ -1,0 +1,83 @@
+{
+  "name": "remko79/drupal8-docker-gitlabci",
+  "description": "Example Drupal 8 with behat, PHPCS, etc.",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Remko Klein",
+      "email": "rklein79@users.noreply.github.com"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packages.drupal.org/8"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/remko79/coding-standards"
+    }
+  ],
+  "require": {
+    "composer/installers": "^1.0.21",
+    "drupal-composer/drupal-scaffold": "^2.0.1",
+    "wikimedia/composer-merge-plugin": "~1.3",
+    "cweagans/composer-patches": "~1.0",
+    "drupal/core": "^8.6.3",
+    "drush/drush": "~8"
+  },
+  "require-dev": {
+    "drupal/drupal-extension": "~3.0",
+    "behatch/contexts": "^3.1",
+    "phpunit/phpunit": "~6",
+    "php-mock/php-mock": "^2.0",
+    "remko79/coding-standards": "dev-master"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "classmap": [
+      "scripts/composer/ScriptHandler.php"
+    ]
+  },
+  "scripts": {
+    "drupal-scaffold": "DrupalComposer\\DrupalScaffold\\Plugin::scaffold",
+    "post-install-cmd": [
+      "DrupalProject\\composer\\ScriptHandler::createRequiredFiles"
+    ],
+    "post-update-cmd": [
+      "DrupalProject\\composer\\ScriptHandler::createRequiredFiles"
+    ],
+    "phpcs-all": "./vendor/bin/phpcs-check",
+    "phpcs": "./vendor/bin/phpcs-check diff",
+    "phpunit": "./vendor/bin/phpunit -c config/phpunit.xml --coverage-text",
+    "phpunit_nocolors": "./vendor/bin/phpunit -c config/phpunit.xml --coverage-text --colors=never",
+    "behat": "./vendor/bin/behat --colors --config behat/behat.yml",
+    "quick_tests": [
+      "@phpcs-all",
+      "@phpunit_nocolors"
+    ]
+  },
+  "extra": {
+    "installer-paths": {
+      "web/core": [
+        "type:drupal-core"
+      ],
+      "web/libraries/{$name}": [
+        "type:drupal-library"
+      ],
+      "web/modules/contrib/{$name}": [
+        "type:drupal-module"
+      ],
+      "web/profiles/contrib/{$name}": [
+        "type:drupal-profile"
+      ],
+      "web/themes/contrib/{$name}": [
+        "type:drupal-theme"
+      ],
+      "drush/contrib/{$name}": [
+        "type:drupal-drush"
+      ]
+    }
+  }
+}

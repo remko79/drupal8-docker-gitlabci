@@ -1,0 +1,29 @@
+# Sample behat file
+default:
+  suites:
+    endpoints:
+      # add endpoints, example below
+      xml:
+        paths:
+          - features/rss
+        contexts:
+          - behatch:context:xml
+
+  formatters:
+    pretty: true
+
+  extensions:
+    Behatch\Extension: ~
+
+    Behat\MinkExtension:
+      default_session: goutte
+      goutte: ~
+
+    Drupal\DrupalExtension:
+      blackbox: ~
+      default_driver: 'drupal'
+      drupal:
+        drupal_root: 'web'
+
+imports:
+  - behat.local.yml

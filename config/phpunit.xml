@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit colors="true"
+         bootstrap="../web/core/tests/bootstrap.php">
+    <testsuites>
+        <testsuite name="Custom Modules Test Suite">
+            <directory>../web/modules/custom/*/tests/src/Unit/</directory>
+        </testsuite>
+    </testsuites>
+
+    <filter>
+        <whitelist>
+            <directory>../web/modules/custom/*/src</directory>
+            <exclude>
+                <directory>../web/modules/custom/*/src/*Interface.php</directory>
+            </exclude>
+        </whitelist>
+    </filter>
+</phpunit>

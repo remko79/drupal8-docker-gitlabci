@@ -1,0 +1,9 @@
+#   @file
+#   Local override configuration file.
+#
+#   To activate this file, copy and rename it to behat.local.yml and place it in this directory. This file will
+#   tell Behat/Mink which URL to use to perform the tests on. You should use relative URL's in your features.
+default:
+  extensions:
+    Behat\MinkExtension:
+      base_url: http://localhost:8888

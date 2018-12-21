@@ -1,0 +1,134 @@
+variables:
+  IMAGE: $CI_REGISTRY/$CI_PROJECT_PATH:master
+  COMPOSER_CACHE_DIR: .composercache
+
+stages:
+  - docker
+  - builddev
+  - test
+
+.set_composer_ssh_key: &set_composer_ssh_key
+  before_script:
+    # See https://docs.gitlab.com/ee/ci/ssh_keys/
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_KEY_COMPOSER")
+    - mkdir -p ~/.ssh
+    - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+
+#      _            _               _           _ _     _
+#   __| | ___   ___| | _____ _ __  | |__  _   _(_) | __| |
+#  / _` |/ _ \ / __| |/ / _ \ '__| | '_ \| | | | | |/ _` |
+# | (_| | (_) | (__|   <  __/ |    | |_) | |_| | | | (_| |
+#  \__,_|\___/ \___|_|\_\___|_|    |_.__/ \__,_|_|_|\__,_|
+#
+Docker build:
+  stage: docker
+  only:
+    - /^docker-.*$/
+  except: [tags]
+  tags: [shell, cloudvps]
+  script:
+    - echo Image = $IMAGE
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - docker build --pull -t $IMAGE .
+    - docker push $IMAGE
+
+#  _           _ _     _       _
+# | |__  _   _(_) | __| |   __| | _____   __
+# | '_ \| | | | | |/ _` |  / _` |/ _ \ \ / /
+# | |_) | |_| | | | (_| | | (_| |  __/\ V /
+# |_.__/ \__,_|_|_|\__,_|  \__,_|\___| \_/
+#
+Build dev:
+  <<: *set_composer_ssh_key
+  image: $IMAGE
+  stage: builddev
+  tags: [docker]
+  except: [tags]
+  script:
+    - cd $CI_PROJECT_DIR
+
+    # See https://gitlab.com/gitlab-org/gitlab-ce/issues/4431
+    - composer config cache-files-dir $COMPOSER_CACHE_DIR
+    - composer install --optimize-autoloader
+  artifacts:
+    expire_in: 1 week
+    paths:
+      # Directories we want to copy to the next stage.
+      - vendor/
+      - web/core/
+      - web/modules/contrib/
+      - web/sites/default/files/
+      - web/themes/contrib/
+      - web/profiles/contrib/
+
+  cache:
+    key: $CI_PROJECT_PATH_SLUG
+    paths:
+      - $COMPOSER_CACHE_DIR
+
+#              _      _      _            _
+#   __ _ _   _(_) ___| | __ | |_ ___  ___| |_ ___
+#  / _` | | | | |/ __| |/ / | __/ _ \/ __| __/ __|
+# | (_| | |_| | | (__|   <  | ||  __/\__ \ |_\__ \
+#  \__, |\__,_|_|\___|_|\_\  \__\___||___/\__|___/
+#     |_|
+#
+Quick Tests:
+  image: $IMAGE
+  stage: test
+  tags: [docker]
+  except: [tags]
+  script:
+    - cd $CI_PROJECT_DIR
+    - composer run quick_tests
+
+#  _          _           _
+# | |__   ___| |__   __ _| |_
+# | '_ \ / _ \ '_ \ / _` | __|
+# | |_) |  __/ | | | (_| | |_
+# |_.__/ \___|_| |_|\__,_|\__|
+#
+Behat:
+  image: $IMAGE
+  stage: test
+  tags: [docker]
+  except: [tags]
+  services:
+    - mariadb:10.1.26
+  variables:
+    # Configure mysql environment variables (https://hub.docker.com/r/_/mysql/)
+    MYSQL_USER: drupal
+    MYSQL_PASSWORD: drupal
+    MYSQL_DATABASE: drupal
+    MYSQL_ROOT_PASSWORD: drupal
+    DRUSH: ../vendor/bin/drush
+  script:
+    - cd $CI_PROJECT_DIR
+
+    # Symlink required config files.
+    - ln -s ../../../config/settings/settings.local.php web/sites/default/settings.local.php
+    - ln -s behat.gitlab-ci-local.yml behat/behat.local.yml
+
+    # Show status output and import empty database.
+    - cd web
+    - $DRUSH status
+    # Import an empty database representing the environment you want to test.
+    - gunzip -c ../scripts/tests/empty-database.sql.gz | $DRUSH sqlc
+
+    # Start local webserver and wait until it's running.
+    - $DRUSH runserver 8888 &
+    - sleep 2
+
+    # Update Drupal.
+    - $DRUSH cr
+    - $DRUSH -y updb --entity-updates
+    - $DRUSH -y config-import
+    - $DRUSH cr
+
+    # Run behat.
+    - cd ..
+    - composer run behat
+  after_script:
+    # Kill the local webserver.
+    - killall5 -1 php
