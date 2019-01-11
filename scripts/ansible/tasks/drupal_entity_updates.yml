@@ -1,0 +1,18 @@
+# Check if there are entity updates
+- name: Drupal - Check entity updates
+  shell: "{{ drush }} check-entity-updates 2>&1"
+  args:
+    chdir: "{{ drupal_web_root }}"
+  register: has_entity_updates
+  failed_when: has_entity_updates.rc not in [0, 1]
+
+# Update if needed
+- name: Drupal - Entity update
+  shell: "{{ drush }} -y entity-updates 2>&1"
+  args:
+    chdir: "{{ drupal_web_root }}"
+  when: has_entity_updates.rc != 0
+  register: cfg_entup
+
+- debug: msg="{{ cfg_entup.stdout_lines }}"
+  when: cfg_entup.stdout_lines is defined

@@ -1,0 +1,22 @@
+# Check config changes
+- name: Drupal - Check config changes
+  shell: "{{ drush }} check-config-changes 2>&1"
+  args:
+    chdir: "{{ drupal_web_root }}"
+  register: has_changes
+  failed_when: has_changes.rc not in [0, 1]
+
+# Import changes if needed
+- name: Drupal - Config import
+  shell: "{{ drush }} -y config-import 2>&1"
+  args:
+    chdir: "{{ drupal_web_root }}"
+  when: has_changes.rc != 0
+  register: cfg_import
+
+- debug: msg="{{ cfg_import.stdout_lines }}"
+  when: cfg_import.stdout_lines is defined
+
+# Clear caches if changes were imported
+- include_tasks: drush_clear_caches.yml
+  when: has_changes.rc != 0

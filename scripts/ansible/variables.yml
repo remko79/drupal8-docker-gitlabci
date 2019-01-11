@@ -1,0 +1,5 @@
+CI_PROJECT_DIR: "{{ lookup('env','CI_PROJECT_DIR') }}"
+projectdir: "/var/www/site"
+
+drush: "{{ projectdir }}/vendor/bin/drush"
+drupal_web_root: "{{ projectdir }}/web"

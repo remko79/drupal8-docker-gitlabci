@@ -1,0 +1,42 @@
+---
+######## Before sync
+- name: Pre-sync files
+  hosts: "{{ env }}-drupal"
+  serial: 1
+  gather_facts: no
+  vars_files:
+    - variables.yml
+
+  tasks:
+    - include: tasks/cron.yml
+      vars:
+        state: absent
+
+######## Sync all files
+- name: Sync files
+  hosts: "{{ env }}-drupal"
+  serial: 1
+  vars_files:
+    - variables.yml
+
+  tasks:
+    - include: tasks/rsync.yml
+
+######## After sync
+- name: Post-sync files
+  hosts: "{{ env }}-drupal[0]"
+  serial: 1
+  gather_facts: no
+  vars_files:
+    - variables.yml
+
+  tasks:
+    - include: tasks/drupal_updb.yml
+
+    - include: tasks/drupal_config_import.yml
+
+    - include: tasks/drupal_entity_updates.yml
+
+    - include: tasks/cron.yml
+      vars:
+        state: present

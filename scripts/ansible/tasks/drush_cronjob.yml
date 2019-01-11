@@ -1,0 +1,8 @@
+- name: "Cron: {{ cronjob['name'] }} - {{ state }}"
+  cron:
+    name: "{{ cronjob['name'] }}"
+    minute: "{{ cronjob['minute'] | default(omit) }}"
+    hour: "{{ cronjob['hour'] | default(omit) }}"
+    day: "{{ cronjob['day'] | default(omit) }}"
+    job: "cd {{ drupal_web_root }} && (date && {{ drush }} {{ cronjob['cmd'] }}) >> /tmp/cron_{{ cronjob['log'] }}.log 2>&1"
+    state: "{{ state }}"

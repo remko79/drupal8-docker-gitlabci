@@ -1,0 +1,25 @@
+- name: Deploy Cloud
+  synchronize:
+    src: "{{ CI_PROJECT_DIR }}/"
+    dest: "{{ projectdir }}/"
+    delete: true
+    rsync_opts:
+      - "--omit-dir-times"
+      - "--chmod=go-w"
+      - "--exclude=.git"
+      - "--exclude=.gitlab-ci.yml"
+      - "--exclude=Dockerfile*"
+      - "--exclude=sites/default/files/*"
+
+- name: Enforce sites/default/files directory is writable
+  file:
+    mode: 0777
+    path: "{{ projectdir }}/web/sites/default/files"
+    state: directory
+    recurse: no
+
+- name: Ensure settings.local.php file isn't writable
+  file:
+    mode: 0555
+    path: "{{ projectdir }}/web/sites/default/settings.local.php"
+    state: file

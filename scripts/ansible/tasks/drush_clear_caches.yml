@@ -1,0 +1,8 @@
+### drush cr ###
+- name: Drupal - Cache Rebuild
+  shell: "{{ drush }} cr 2>&1"
+  args:
+    chdir: "{{ drupal_web_root }}"
+  register: cacherebuild
+
+- debug: msg="{{ cacherebuild.stdout_lines }}"

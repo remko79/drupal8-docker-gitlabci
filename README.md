@@ -29,9 +29,9 @@ I was using other private repositories for my Drupal environment, so I need to a
 add a variable to the CI/CD settings called 'SSH_KEY_COMPOSER' which holds the ssh key (see https://docs.gitlab.com/ee/ci/ssh_keys).
 
 1. Build dev stage:
-- Setup correct composer caching for the runner
-- Run composer install
-- Create an artifact for the next stage: test
+  - Setup correct composer caching for the runner
+  - Run composer install
+  - Create an artifact for the next stage: test
 
 2. Test stage (2 jobs):
 * Coding standards + phpunit
@@ -43,3 +43,29 @@ add a variable to the CI/CD settings called 'SSH_KEY_COMPOSER' which holds the s
   - Startup a local webserver
   - Update Drupal (make sure the imported database is up to date with the configuration)
   - Run composer's script' behat'
+
+3. Build for deployment:
+  - Build for deployment on the docker image.
+    NOTE: not installing the DEV-dependencies.
+
+4. Deploy:
+  - Example deployment using an ansible-playbook.
+    Deploying to another environment (server) using a specific docker image for our cloud setup using ansible.
+    This docker image requires a SSH_IP (IP address of the server) and SSH_USER (deploy user) and SSH_KEY set in the
+    CI configuration.
+
+## Ansible
+The complete ansible playbook and tasks are available in [scripts/ansible](scripts/ansible).
+
+Prerequisites:
+  - Ansible docker image
+  - Ansible inventory (hosts). We use something like '<env>-drupal'. 
+
+### Playbook
+1. We're disabling any cron tasks made.
+2. Rsyncing all files
+3. Post-rsync script on only 1 of the servers
+   - Run 'drush updb' command
+   - Run 'drush config-import' if needed
+   - Run 'drush entity-updates' if needed
+   - Enable cron jobs

@@ -1,0 +1,7 @@
+- import_tasks: drush_cronjob.yml
+  vars:
+    cronjob:
+      name: "Drupal cron"
+      minute: "*/2"
+      cmd: "cron"
+      log: "drupal_cron"

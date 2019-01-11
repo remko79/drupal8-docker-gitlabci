@@ -1,11 +1,14 @@
 variables:
   IMAGE: $CI_REGISTRY/$CI_PROJECT_PATH:master
+  DEPLOYIMAGE: $CI_REGISTRY/cloud/gitlab-ci-deploy:master
   COMPOSER_CACHE_DIR: .composercache
 
 stages:
   - docker
   - builddev
   - test
+  - builddeploy
+  - deploy-test
 
 .set_composer_ssh_key: &set_composer_ssh_key
   before_script:
@@ -26,7 +29,7 @@ Docker build:
   only:
     - /^docker-.*$/
   except: [tags]
-  tags: [shell, cloudvps]
+  tags: [shell]
   script:
     - echo Image = $IMAGE
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
@@ -132,3 +135,67 @@ Behat:
   after_script:
     # Kill the local webserver.
     - killall5 -1 php
+
+
+#  _           _ _     _       _            _
+# | |__  _   _(_) | __| |   __| | ___ _ __ | | ___  _   _
+# | '_ \| | | | | |/ _` |  / _` |/ _ \ '_ \| |/ _ \| | | |
+# | |_) | |_| | | | (_| | | (_| |  __/ |_) | | (_) | |_| |
+# |_.__/ \__,_|_|_|\__,_|  \__,_|\___| .__/|_|\___/ \__, |
+#                                    |_|            |___/
+Build deploy:
+  <<: *set_composer_ssh_key
+  image: $IMAGE
+  stage: builddeploy
+  tags: [docker]
+  except: [tags]
+  script:
+    - cd $CI_PROJECT_DIR
+
+    # See https://gitlab.com/gitlab-org/gitlab-ce/issues/4431
+    - composer config cache-files-dir $COMPOSER_CACHE_DIR
+    - composer install --optimize-autoloader --no-dev
+  dependencies: [] # don't use artifacts here
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - vendor/
+      - web/core/
+      - web/modules/contrib/
+      - web/sites/default/files/
+      - web/themes/contrib/
+      - web/profiles/contrib/
+
+  cache:
+    key: $CI_PROJECT_PATH_SLUG
+    paths:
+      - $COMPOSER_CACHE_DIR
+
+#      _            _               _            _
+#   __| | ___ _ __ | | ___  _   _  | |_ ___  ___| |_
+#  / _` |/ _ \ '_ \| |/ _ \| | | | | __/ _ \/ __| __|
+# | (_| |  __/ |_) | | (_) | |_| | | ||  __/\__ \ |_
+#  \__,_|\___| .__/|_|\___/ \__, |  \__\___||___/\__|
+#            |_|            |___/
+
+Deploy Test:
+  image: $DEPLOYIMAGE
+  stage: deploy-test
+  only:
+    - test-deploy
+  when: manual
+  tags: [docker]
+  dependencies:
+    # only use artifact from this stage
+    - Build deploy
+  script:
+    - set -u
+    - echo "SSH_IP is ${SSH_IP}"
+    - echo "SSH_USER is ${SSH_USER}"
+    - eval $(prep_agent)
+    - prep_ansible
+
+    - cp config/settings/settings.local.php web/sites/default/settings.local.php
+    - rm -rf config/settings/
+
+    - ansible-playbook scripts/ansible/cloud_deploy.yml --extra-vars "env=test"

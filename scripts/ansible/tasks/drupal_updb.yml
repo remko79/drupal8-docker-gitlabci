@@ -1,0 +1,8 @@
+### drush updb ###
+- name: Drupal - Update database
+  shell: "{{ drush }} -y updb 2>&1"
+  args:
+    chdir: "{{ drupal_web_root }}"
+  register: updb
+
+- debug: msg="{{ updb.stdout_lines }}"
